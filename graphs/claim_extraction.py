@@ -80,4 +80,4 @@ workflow.add_conditional_edges(
 workflow.add_edge("escalate_to_trading_desk", END)
 workflow.add_edge("create_arbitration_ticket", END)
 
-CLAIM_EXTRATION_GRAPH = workflow.compile()
+CLAIM_EXTRACTION_GRAPH = workflow.compile()
