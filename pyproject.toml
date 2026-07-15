@@ -10,3 +10,8 @@ dependencies = [
     "pydantic[email]>=2.9",
     "python-dotenv>=1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.15.0",
+]
