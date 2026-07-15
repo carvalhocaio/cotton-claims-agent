@@ -25,7 +25,7 @@ class BinaryAnswer(BaseModel):
         description="""Confiança na resposta. 'baixa' quando a mensagem não
         traz informação suficiente para responder com segurança"""
     )
-    justificativa: str = Field(
+    justification: str = Field(
         description="Justificativa breve (1 frase) citando o trecho relevante de mensagem"
     )
 
