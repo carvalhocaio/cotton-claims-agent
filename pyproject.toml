@@ -1,7 +1,12 @@
 [project]
 name = "cotton-claims-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agente LangGraph para triagem de reclamações de qualidade de algodão"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "langgraph>=1.2",
+    "langchain-google-genai>=2.0",
+    "pydantic[email]>=2.9",
+    "python-dotenv>=1.0",
+]
