@@ -128,10 +128,7 @@ claim_parse_prompt = ChatPromptTemplate.from_messages(
             converter datas para o formato YYYY-mm-dd.
             """,
         ),
-        (
-            "human",
-            "Aqui está a mensagem:\n\n{message}",
-        ),
+        ("human", "{message}"),
     ]
 )
 

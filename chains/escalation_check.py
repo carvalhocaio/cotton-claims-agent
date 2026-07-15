@@ -60,10 +60,7 @@ escalation_check_prompt = ChatPromptTemplate.from_messages(
             reclamações (faturas, dúvidas comerciais).
             """,
         ),
-        (
-            "human",
-            "Aqui está a mensagem:\n\n{message}",
-        ),
+        ("human", "{message}"),
     ]
 )
 
