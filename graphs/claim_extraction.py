@@ -15,7 +15,11 @@ from langgraph.graph import END, START, StateGraph
 import actions
 from chains.binary_questions import BINARY_QUESTION_CHAIN, BinaryAnswer
 from chains.claim_extraction import CLAIM_PARSER_CHAIN, ClaimExtract
-from chains.escalation_check import ESCALATION_CHECK_CHAIN, EscalationCheck
+from chains.escalation_check import (
+    ESCALATION_CHECK_CHAIN,
+    ESCALATION_EXPOSURE_THRESHOLD_USD,
+    EscalationCheck,
+)
 
 QUALIFYING_QUESTIONS = [
     "O embarque foi inspecionado por um surveyor independente?",
@@ -24,6 +28,17 @@ QUALIFYING_QUESTIONS = [
 ]
 """Checklist fixo usado antes de abrir um ticket de arbitragem. Única
 fonte de verdade — se o checklist mudar, muda só aqui."""
+
+CONTAMINATION_KEYWORDS = (
+    "contaminação",
+    "contaminacao",
+    "plástico",
+    "plastico",
+    "polipropileno",
+    "fibra estranha",
+)
+"""Sinais textuais de contaminação usados no backstop determinístico de
+escalonamento (defesa contra prompt injection que peça para não escalar)."""
 
 
 class GraphState(TypedDict):
@@ -42,10 +57,39 @@ def parse_claim(state: GraphState) -> dict[str, ClaimExtract]:
     return {"claim_data": claim_data}
 
 
+def deterministic_escalation_triggers(claim: ClaimExtract, message: str) -> list[str]:
+    """Backstop determinístico de escalonamento, independente do LLM.
+
+    Defesa contra prompt injection (PI-1/PI-4): mesmo que a mensagem
+    instrua o modelo a "não escalar", exposição financeira acima do
+    limiar ou sinais textuais de contaminação forçam o escalonamento.
+    Função pura — testável sem chamar a API.
+    """
+    triggers: list[str] = []
+    exposure = claim.max_potential_exposure or 0
+    if exposure >= ESCALATION_EXPOSURE_THRESHOLD_USD:
+        triggers.append("exposição financeira acima do limiar (backstop)")
+    lowered = message.lower()
+    if any(keyword in lowered for keyword in CONTAMINATION_KEYWORDS):
+        triggers.append("sinal de contaminação no texto (backstop)")
+    return triggers
+
+
 def check_escalation(state: GraphState) -> dict[str, EscalationCheck]:
     escalation = cast(
         EscalationCheck, ESCALATION_CHECK_CHAIN.invoke({"message": state["message"]})
     )
+    backstop = deterministic_escalation_triggers(state["claim_data"], state["message"])
+    if backstop:
+        escalation = escalation.model_copy(
+            update={
+                "requires_escalation": True,
+                "escalation_triggers": [
+                    *escalation.escalation_triggers,
+                    *backstop,
+                ],
+            }
+        )
     return {"escalation": escalation}
 
 

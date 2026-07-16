@@ -26,6 +26,9 @@ jobs:
       - name: Ruff (format)
         run: uv run ruff format --check
 
+      - name: Auditoria de dependências (pip-audit)
+        run: uv run pip-audit
+
       - name: Testes unitários
         # Chave fictícia: os testes unitários não chamam a API, mas os
         # modelos são construídos no import e exigem uma chave presente.

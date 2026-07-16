@@ -11,19 +11,29 @@ reais (e-mail, ticket, fila) é uma mudança local, sem tocar nos grafos.
 """
 
 import logging
+import re
 
 from chains.binary_questions import BinaryAnswer
 from chains.claim_extraction import ClaimExtract
 
 logger = logging.getLogger(__name__)
 
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _clean(value: object) -> str:
+    """Neutraliza quebras de linha e caracteres de controle em texto vindo
+    do LLM/remetente antes de ir para o log (CS-1: impede forja de linhas
+    de log injetando `\\n[TICKET] ...` em campos como o nome do reclamante)."""
+    return _CONTROL_CHARS.sub(" ", str(value))
+
 
 def _claim_summary(claim: ClaimExtract) -> str:
     """Resumo curto de identificação da reclamação, reutilizado nas
     mensagens de escalonamento e de abertura de ticket (DRY)."""
     return (
-        f"reclamante: {claim.claiming_party}, "
-        f"contrato/lote: {claim.contract_or_lot_reference}"
+        f"reclamante: {_clean(claim.claiming_party)}, "
+        f"contrato/lote: {_clean(claim.contract_or_lot_reference)}"
     )
 
 
@@ -35,7 +45,7 @@ def notify_trading_desk(claim: ClaimExtract, triggers: list[str]) -> None:
         "exposição estimada: USD %s, motivos: %s.",
         _claim_summary(claim),
         exposure,
-        ", ".join(triggers),
+        _clean(", ".join(triggers)),
     )
 
 
@@ -54,7 +64,7 @@ def create_arbitration_ticket(claim: ClaimExtract) -> None:
     logger.info(
         "[TICKET] Ticket de arbitragem aberto — %s, tipo: %s.",
         _claim_summary(claim),
-        claim.claim_type,
+        _clean(claim.claim_type),
     )
 
 
@@ -62,6 +72,6 @@ def forward_to_department(department: str, reason: str) -> None:
     """Encaminha a mensagem para outro departamento interno."""
     logger.info(
         "[ENCAMINHAMENTO] Mensagem enviada para %s. Motivo: %s",
-        department,
-        reason,
+        _clean(department),
+        _clean(reason),
     )

@@ -107,9 +107,38 @@ uv run ruff format            # formatação
 ```
 
 O [GitHub Actions](.github/workflows/ci.yml) roda `ruff check`,
-`ruff format --check` e os testes unitários a cada push/PR na `main`. Os
-testes unitários não chamam a API, mas usam uma chave fictícia no CI
-porque os modelos são construídos no import.
+`ruff format --check`, um scan de dependências (`pip-audit`) e os testes
+unitários a cada push/PR na `main`. Os testes unitários não chamam a API,
+mas usam uma chave fictícia no CI porque os modelos são construídos no
+import.
+
+## Segurança
+
+A entrada do agente é texto de e-mail **não-confiável**, então o projeto
+adota algumas defesas contra prompt injection e vazamento:
+
+- **Backstop determinístico de escalonamento** (`graphs/claim_extraction.py`):
+  exposição financeira acima de `ESCALATION_EXPOSURE_THRESHOLD_USD` ou
+  sinais de contaminação no texto forçam o escalonamento em Python, mesmo
+  que a mensagem tente instruir o modelo a "não escalar".
+- **Prompts endurecidos**: o conteúdo do remetente entra delimitado por
+  `<mensagem>...</mensagem>` e os prompts instruem o modelo a tratá-lo como
+  DADO, nunca como instruções.
+- **Sanitização de log** (`actions.py`): campos vindos do LLM têm quebras
+  de linha/controles neutralizados antes de ir para o log, evitando forja
+  de linhas.
+- **Teto de iterações** (`AGENT_RECURSION_LIMIT`) nos `.invoke` do agente,
+  para conter custo/loops.
+
+Ao operar/expor este projeto:
+
+- **Não exponha o Streamlit publicamente sem autenticação e rate-limiting**
+  — sem isso, qualquer um consome tokens da API (custo) e o app vira canal
+  de entrada não-controlado.
+- **O conteúdo enviado é processado pela API do Google Gemini** (serviço
+  externo). Não cole dados sensíveis reais na interface/demo; use dados
+  fictícios, como em `example_claims.py`.
+- Rode o scan de dependências periodicamente: `uv run pip-audit`.
 
 ## Limitações conhecidas
 

@@ -9,13 +9,16 @@ Uso:
     uv run streamlit run app.py
 """
 
+import logging
 from typing import Any
 
 import streamlit as st
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 from example_claims import CLAIMS
-from graphs.claims_agent import CLAIMS_AGENT
+from graphs.claims_agent import AGENT_RECURSION_LIMIT, CLAIMS_AGENT
+
+logger = logging.getLogger(__name__)
 
 TOOL_LABELS = {
     "triage_claim": "Triagem de reclamação",
@@ -96,10 +99,17 @@ def main() -> None:
         with st.spinner("Agente avaliando a mensagem..."):
             try:
                 result = CLAIMS_AGENT.invoke(
-                    {"messages": [HumanMessage(content=message)]}
+                    {"messages": [HumanMessage(content=message)]},
+                    config={"recursion_limit": AGENT_RECURSION_LIMIT},
                 )
-            except Exception as exc:
-                st.error(f"Falha ao processar a mensagem: {exc}")
+            except Exception:
+                # Detalhe do erro vai só para o log (server-side); o usuário
+                # final vê uma mensagem genérica, sem internals da lib/SDK.
+                logger.exception("Falha ao processar a mensagem")
+                st.error(
+                    "Não foi possível processar a mensagem. "
+                    "Tente novamente ou contate o suporte."
+                )
                 return
         render_result(result)
 

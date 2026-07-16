@@ -12,12 +12,15 @@ import logging
 from langchain_core.messages import AIMessage, HumanMessage
 
 from example_claims import CLAIMS
-from graphs.claims_agent import CLAIMS_AGENT
+from graphs.claims_agent import AGENT_RECURSION_LIMIT, CLAIMS_AGENT
 
 
 def run_message(message: str) -> None:
     try:
-        result = CLAIMS_AGENT.invoke({"messages": [HumanMessage(content=message)]})
+        result = CLAIMS_AGENT.invoke(
+            {"messages": [HumanMessage(content=message)]},
+            config={"recursion_limit": AGENT_RECURSION_LIMIT},
+        )
     except Exception as exc:
         # Fronteira da CLI: reporta o erro em vez de estourar um traceback.
         print(f"[ERRO] Falha ao processar a mensagem: {exc}")
