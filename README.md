@@ -37,8 +37,12 @@ e o que deve ser encaminhado para outro departamento.
 ├── graphs/
 │   ├── claim_extraction.py  # StateGraph das Fases 2–4
 │   └── claims_agent.py      # agente completo (Fase 5)
+├── llm.py                   # factory única do modelo (get_model)
+├── actions.py               # ações de negócio (efeitos colaterais via logging)
 ├── example_claims.py        # mensagens de exemplo, sem dependências internas
 ├── main.py                  # ponto de entrada (CLI)
+├── app.py                   # interface Streamlit opcional (demonstração)
+├── .github/workflows/ci.yml # lint + testes no GitHub Actions
 └── tests/
     ├── unit/                # lógica determinística, sem chamadas de API
     └── integration/         # chains, grafo e agente, com marker @pytest.mark.integration
@@ -50,6 +54,19 @@ existência de `graphs/`; as três chains são independentes entre si;
 `graphs/claim_extraction.py` depende só das chains; `graphs/claims_agent.py`
 é o único módulo que depende de outro grafo.
 
+Dois módulos transversais concentram responsabilidades que antes ficavam
+espalhadas:
+
+- **`llm.py`** — factory `get_model()`, ponto único de configuração e
+  troca do provedor de LLM (nome do modelo, temperatura e chave de API).
+  As chains e o agente pedem o modelo por aqui, sem instanciar o cliente
+  diretamente (DRY + Dependency Inversion).
+- **`actions.py`** — ações de negócio (notificar a mesa de trading, abrir
+  ticket, encaminhar para outro departamento, registrar respostas do
+  checklist). Os nós do grafo decidem *o que* fazer; este módulo decide
+  *como* comunicar, hoje via `logging`. Trocar por integrações reais
+  (e-mail, ticket, fila) é uma mudança local, sem tocar nos grafos.
+
 ## Setup
 
 ```bash
@@ -57,11 +74,18 @@ uv sync
 echo "GEMINI_API_KEY=sua-chave-aqui" >> .env
 ```
 
+A chave é lida de `GEMINI_API_KEY` (com `GOOGLE_API_KEY` como fallback) e
+passada explicitamente ao cliente em `llm.py`.
+
 ## Uso
 
 ```bash
+# CLI
 uv run python main.py --demo
 uv run python main.py --message "texto de uma reclamação ou e-mail qualquer"
+
+# Interface Streamlit (extra opcional: uv sync --extra app)
+uv run streamlit run app.py
 ```
 
 ## Testes
@@ -72,6 +96,21 @@ uv run pytest -m integration   # chama a API do Gemini de verdade
 uv run pytest -m ""            # roda tudo
 ```
 
+## Qualidade de código
+
+Lint e formatação com [Ruff](https://docs.astral.sh/ruff/):
+
+```bash
+uv run ruff check              # lint
+uv run ruff check --fix        # lint + correções automáticas
+uv run ruff format            # formatação
+```
+
+O [GitHub Actions](.github/workflows/ci.yml) roda `ruff check`,
+`ruff format --check` e os testes unitários a cada push/PR na `main`. Os
+testes unitários não chamam a API, mas usam uma chave fictícia no CI
+porque os modelos são construídos no import.
+
 ## Limitações conhecidas
 
 - `response_deadline` só é preenchido quando a mensagem menciona uma
@@ -80,9 +119,9 @@ uv run pytest -m ""            # roda tudo
   cálculo de dias úteis, deliberadamente fora do escopo do LLM.
 - O checklist de qualificação (`QUALIFYING_QUESTIONS`) é fixo; não se
   adapta ao tipo de reclamação.
-- Ações como `escalate_to_trading_desk` e `create_arbitration_ticket`
-  são simuladas via `print` — não integram com um sistema real de
-  tickets ou e-mail.
+- As ações de negócio em `actions.py` (notificar a mesa, abrir ticket,
+  encaminhar) são simuladas via `logging` — ainda não integram com um
+  sistema real de tickets ou e-mail.
 
 ## Créditos
 
