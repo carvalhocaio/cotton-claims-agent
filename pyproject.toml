@@ -22,3 +22,6 @@ markers = [
     "integration: testes que chamam a API real do Gemini (lentos, custam tokens, não-determinísticos)",
 ]
 addopts = "-m 'not integration'"
+
+[project.optional-dependencies]
+app = ["streamlit>=1.38"]
