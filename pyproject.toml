@@ -14,4 +14,11 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ipython>=9.15.0",
+    "pytest>=9.1.1",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: testes que chamam a API real do Gemini (lentos, custam tokens, não-determinísticos)",
+]
+addopts = "-m 'not integration'"
