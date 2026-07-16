@@ -1,4 +1,5 @@
 from typing import cast
+
 import pytest
 from langchain_core.messages import AIMessage
 from langgraph.graph import MessagesState
@@ -17,20 +18,28 @@ def _tool_names_called(messages: list) -> list[str]:
 
 
 def test_contamination_claim_routes_to_triage(claims):
-    result = CLAIMS_AGENT.invoke(cast(MessagesState, {"messages": [("user", claims[0])]}))
+    result = CLAIMS_AGENT.invoke(
+        cast(MessagesState, {"messages": [("user", claims[0])]})
+    )
     assert "triage_claim" in _tool_names_called(result["messages"])
 
 
 def test_invoice_routes_to_forward_department(claims):
-    result = CLAIMS_AGENT.invoke(cast(MessagesState, {"messages": [("user", claims[1])]}))
+    result = CLAIMS_AGENT.invoke(
+        cast(MessagesState, {"messages": [("user", claims[1])]})
+    )
     assert "forward_to_department" in _tool_names_called(result["messages"])
 
 
 def test_informal_complaint_still_routes_to_triage(claims):
-    result = CLAIMS_AGENT.invoke(cast(MessagesState, {"messages": [("user", claims[2])]}))
+    result = CLAIMS_AGENT.invoke(
+        cast(MessagesState, {"messages": [("user", claims[2])]})
+    )
     assert "triage_claim" in _tool_names_called(result["messages"])
 
 
 def test_weight_dispute_routes_to_triage(claims):
-    result = CLAIMS_AGENT.invoke(cast(MessagesState, {"messages": [("user", claims[3])]}))
+    result = CLAIMS_AGENT.invoke(
+        cast(MessagesState, {"messages": [("user", claims[3])]})
+    )
     assert "triage_claim" in _tool_names_called(result["messages"])

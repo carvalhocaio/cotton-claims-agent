@@ -1,4 +1,5 @@
 from typing import cast
+
 import pytest
 
 from chains.binary_questions import BINARY_QUESTION_CHAIN, BinaryAnswer

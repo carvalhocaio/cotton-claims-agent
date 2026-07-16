@@ -15,7 +15,29 @@ dependencies = [
 dev = [
     "ipython>=9.15.0",
     "pytest>=9.1.1",
+    "ruff>=0.15.22",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "C4",   # flake8-comprehensions
+    "TID",  # flake8-tidy-imports
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]  # descrições longas em asserts/fixtures de teste
 
 [tool.pytest.ini_options]
 markers = [

@@ -1,4 +1,5 @@
 from typing import cast
+
 import pytest
 
 from chains.claim_extraction import CLAIM_PARSER_CHAIN, ClaimExtract

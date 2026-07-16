@@ -1,12 +1,14 @@
 from typing import cast
+
 from chains.escalation_check import EscalationCheck
 from graphs.claim_extraction import (
     QUALIFYING_QUESTIONS,
     GraphState,
     has_pending_questions,
     prepare_qualification,
-    route_by_escalation
+    route_by_escalation,
 )
+
 
 def test_route_by_escalation_when_required():
     state = {
@@ -37,8 +39,9 @@ def test_prepare_qualification_initializes_pending_questions():
 
 def test_has_pending_questions_with_items_continues_loop():
     state = {"pending_questions": ["some question"]}
-    assert has_pending_questions(cast(GraphState, state)) == "ask_next_qualifying_question"
-
+    assert (
+        has_pending_questions(cast(GraphState, state)) == "ask_next_qualifying_question"
+    )
 
 
 def test_has_pending_questions_when_empty_exits_loop():

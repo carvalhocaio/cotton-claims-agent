@@ -8,10 +8,11 @@ Depende de chains.claim_extraction, chains.escalation_check e
 chains.binary_questions — este módulo orquestra as três, por design.
 """
 
-from typing import TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from langgraph.graph import END, START, StateGraph
 
+import actions
 from chains.binary_questions import BINARY_QUESTION_CHAIN, BinaryAnswer
 from chains.claim_extraction import CLAIM_PARSER_CHAIN, ClaimExtract
 from chains.escalation_check import ESCALATION_CHECK_CHAIN, EscalationCheck
@@ -34,38 +35,40 @@ class GraphState(TypedDict):
     resolution: str
 
 
-def parse_claim(state: GraphState) -> dict:
-    claim_data = cast(ClaimExtract, CLAIM_PARSER_CHAIN.invoke({"message": state["message"]}))
+def parse_claim(state: GraphState) -> dict[str, ClaimExtract]:
+    claim_data = cast(
+        ClaimExtract, CLAIM_PARSER_CHAIN.invoke({"message": state["message"]})
+    )
     return {"claim_data": claim_data}
 
 
-def check_escalation(state: GraphState) -> dict:
-    escalation = cast(EscalationCheck, ESCALATION_CHECK_CHAIN.invoke({"message": state["message"]}))
+def check_escalation(state: GraphState) -> dict[str, EscalationCheck]:
+    escalation = cast(
+        EscalationCheck, ESCALATION_CHECK_CHAIN.invoke({"message": state["message"]})
+    )
     return {"escalation": escalation}
 
 
-def route_by_escalation(state: GraphState) -> str:
+def route_by_escalation(
+    state: GraphState,
+) -> Literal["escalate_to_trading_desk", "prepare_qualification"]:
     if state["escalation"].requires_escalation:
         return "escalate_to_trading_desk"
     return "prepare_qualification"
 
 
-def escalate_to_trading_desk(state: GraphState) -> dict:
-    claim = state["claim_data"]
-    print(
-        f"[ESCALAÇÃO] Notificando mesa de trading — reclamante: "
-        f"{claim.claiming_party}, contrato/lote: {claim.contract_or_lot_reference}, "
-        f"exposição estimada: USD {claim.max_potential_exposure or 0:,.2f}, "
-        f"motivos: {', '.join(state['escalation'].escalation_triggers)}."
+def escalate_to_trading_desk(state: GraphState) -> dict[str, str]:
+    actions.notify_trading_desk(
+        state["claim_data"], state["escalation"].escalation_triggers
     )
     return {"resolution": "escalated_to_trading_desk"}
 
 
-def prepare_qualification(state: GraphState) -> dict:
+def prepare_qualification(state: GraphState) -> dict[str, Any]:
     return {"pending_questions": list(QUALIFYING_QUESTIONS), "qualifying_answers": {}}
 
 
-def ask_next_qualifying_question(state: GraphState) -> dict:
+def ask_next_qualifying_question(state: GraphState) -> dict[str, Any]:
     pending = state["pending_questions"]
     question = pending[0]
     answer = cast(
@@ -74,26 +77,23 @@ def ask_next_qualifying_question(state: GraphState) -> dict:
             {"question": question, "message": state["message"]}
         ),
     )
-    print(f"[QUALIFICAÇÃO] {question} -> {answer.answer} ({answer.confidence})")
+    actions.log_qualification_answer(question, answer)
     return {
         "pending_questions": pending[1:],
         "qualifying_answers": {**state["qualifying_answers"], question: answer},
     }
 
 
-def has_pending_questions(state: GraphState) -> str:
+def has_pending_questions(
+    state: GraphState,
+) -> Literal["ask_next_qualifying_question", "create_arbitration_ticket"]:
     if state["pending_questions"]:
         return "ask_next_qualifying_question"
     return "create_arbitration_ticket"
 
 
-def create_arbitration_ticket(state: GraphState) -> dict:
-    claim = state["claim_data"]
-    print(
-        f"[TICKET] Ticket de arbitragem aberto — reclamante: "
-        f"{claim.claiming_party}, contrato/lote: {claim.contract_or_lot_reference}, "
-        f"tipo: {claim.claim_type}."
-    )
+def create_arbitration_ticket(state: GraphState) -> dict[str, str]:
+    actions.create_arbitration_ticket(state["claim_data"])
     return {"resolution": "arbitration_ticket_created"}
 
 

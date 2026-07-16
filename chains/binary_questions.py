@@ -10,12 +10,11 @@ do ciclo de follow-up do ticket de arbitragem.
 
 from typing import Literal
 
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
-load_dotenv()
+from llm import get_model
+
 
 class BinaryAnswer(BaseModel):
     answer: bool = Field(
@@ -26,7 +25,8 @@ class BinaryAnswer(BaseModel):
         traz informação suficiente para responder com segurança"""
     )
     justification: str = Field(
-        description="Justificativa breve (1 frase) citando o trecho relevante de mensagem"
+        description="Justificativa breve (1 frase) citando o trecho "
+        "relevante da mensagem"
     )
 
 
@@ -53,9 +53,8 @@ binary_question_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-binary_question_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+binary_question_model = get_model()
 
 BINARY_QUESTION_CHAIN = (
-    binary_question_prompt
-    | binary_question_model.with_structured_output(BinaryAnswer)
+    binary_question_prompt | binary_question_model.with_structured_output(BinaryAnswer)
 )

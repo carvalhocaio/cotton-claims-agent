@@ -8,15 +8,16 @@ Depende de graphs.claim_extraction - este é o módulo de mais alto nível
 do projeto, o único que expõe o grafo de triagem completo como tool.
 """
 
-from typing import cast
+from typing import Literal, cast
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import BaseMessage, SystemMessage
 from langchain_core.tools import tool
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
+import actions
 from graphs.claim_extraction import CLAIM_EXTRACTION_GRAPH, GraphState
+from llm import get_model
 
 
 @tool
@@ -36,6 +37,7 @@ def triage_claim(message: str) -> str:
         f"Tipo: {claim.claim_type}."
     )
 
+
 @tool
 def forward_to_department(department: str, reason: str) -> str:
     """Encaminha a mensagem atual para o departamento interno correto
@@ -43,8 +45,9 @@ def forward_to_department(department: str, reason: str) -> str:
     peso (ex: fatura -> 'financeiro', dúvida de transporte ->
     'logística', negociação de preço -> 'comercial'). Informe o
     departamento e o motivo do encaminhamento."""
-    print(f"[ENCAMINHAMENTO] Mensagem enviada para {department}. Motivo: {reason}")
+    actions.forward_to_department(department, reason)
     return f"Mensagem encaminhada para o departamento: {department}."
+
 
 TOOLS = [triage_claim, forward_to_department]
 
@@ -61,12 +64,10 @@ Use exatamente uma tool por mensagem recebida. Depois do resultado da
 tool, responda com um resumo breve em português do que foi feito.
 """
 
-agent_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0).bind_tools(
-    TOOLS
-)
+agent_model = get_model().bind_tools(TOOLS)
 
 
-def call_model(state: MessagesState) -> dict:
+def call_model(state: MessagesState) -> dict[str, list[BaseMessage]]:
     messages = state["messages"]
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [SystemMessage(content=AGENT_SYSTEM_PROMPT), *messages]
@@ -74,7 +75,7 @@ def call_model(state: MessagesState) -> dict:
     return {"messages": [response]}
 
 
-def should_continue(state: MessagesState) -> str:
+def should_continue(state: MessagesState) -> Literal["tools", "__end__"]:
     last_message = state["messages"][-1]
     if getattr(last_message, "tool_calls", None):
         return "tools"

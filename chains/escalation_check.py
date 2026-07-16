@@ -7,17 +7,15 @@ da mensagem, não sobre a extração estruturada. Isso permite que as duas
 chains sejam executadas em paralelo dentro do grafo.
 """
 
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
-load_dotenv()
+from llm import get_model
 
 ESCALATION_EXPOSURE_THRESHOLD_USD = 50_000
 """Exposição financeira acima da qual uma reclamação já é candidata a
 escalonamento, mesmo sem contaminação confirmada. Única fonte de verdade
-para essa valor - usado tanto no prompt quanto em qualquer validação
+para esse valor - usado tanto no prompt quanto em qualquer validação
 futura em Python."""
 
 
@@ -30,12 +28,13 @@ class EscalationCheck(BaseModel):
     escalation_triggers: list[str] = Field(
         default_factory=list,
         description="""Motivos curtos que levaram à decisão (ex:
-        'contamiação confirmada', 'exposição acima do limite',
+        'contaminação confirmada', 'exposição acima do limite',
         'ameaça explícita de arbitragem formal')""",
     )
     reasoning: str = Field(
         description="Justificativa breve (1-2 frases) para a decisão"
     )
+
 
 escalation_check_prompt = ChatPromptTemplate.from_messages(
     [
@@ -64,7 +63,7 @@ escalation_check_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-escalation_check_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+escalation_check_model = get_model()
 
 ESCALATION_CHECK_CHAIN = (
     escalation_check_prompt

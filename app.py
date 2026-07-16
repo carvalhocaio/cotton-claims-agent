@@ -9,9 +9,11 @@ Uso:
     uv run streamlit run app.py
 """
 
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from typing import Any
 
 import streamlit as st
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+
 from example_claims import CLAIMS
 from graphs.claims_agent import CLAIMS_AGENT
 
@@ -27,7 +29,10 @@ EXAMPLE_LABELS = {
     3: "Exemplo 3 — Divergência de peso (checklist, sem escalonar)",
 }
 
-def extract_tool_call_and_output(messages: list) -> tuple[str | None, str | None]:
+
+def extract_tool_call_and_output(
+    messages: list[BaseMessage],
+) -> tuple[str | None, str | None]:
     """Extrai o nome da tool chamada pelo agente e o texto que ela
     retornou. Função pura, sem efeitos colaterais — isolada do resto
     da UI para poder ser testada isoladamente, se um dia fizer sentido.
@@ -50,7 +55,7 @@ def extract_tool_call_and_output(messages: list) -> tuple[str | None, str | None
     return tool_name, tool_output
 
 
-def render_result(result: dict) -> None:
+def render_result(result: dict[str, Any]) -> None:
     messages = result["messages"]
     tool_name, tool_output = extract_tool_call_and_output(messages)
     final_summary = messages[-1].content
@@ -59,7 +64,7 @@ def render_result(result: dict) -> None:
         st.markdown(f"**{TOOL_LABELS.get(tool_name, tool_name)}**")
 
     if tool_output:
-        st.info(final_summary)
+        st.info(tool_output)
 
     st.markdown("**Resumo do agente:**")
     st.write(final_summary)
@@ -89,7 +94,13 @@ def main() -> None:
 
     if st.button("Rodar triagem", type="primary", disabled=not message.strip()):
         with st.spinner("Agente avaliando a mensagem..."):
-            result = CLAIMS_AGENT.invoke({"messages": [HumanMessage(content=message)]})
+            try:
+                result = CLAIMS_AGENT.invoke(
+                    {"messages": [HumanMessage(content=message)]}
+                )
+            except Exception as exc:
+                st.error(f"Falha ao processar a mensagem: {exc}")
+                return
         render_result(result)
 
 

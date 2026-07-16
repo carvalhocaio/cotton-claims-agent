@@ -1,11 +1,10 @@
 from datetime import date, datetime
 
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field, computed_field
 
-load_dotenv()
+from llm import get_model
+
 
 class HVIFindings(BaseModel):
     """Parâmetros de HVI mencionados na reclamação, quando presentes."""
@@ -75,7 +74,8 @@ class ClaimExtract(BaseModel):
     )
     hvi_findings: HVIFindings | None = Field(
         default=None,
-        description="Parâmetros de HVI estruturados mencionados na reclamação, se houver",
+        description="Parâmetros de HVI estruturados mencionados na "
+        "reclamação, se houver",
     )
     required_action: str | None = Field(
         default=None,
@@ -85,7 +85,8 @@ class ClaimExtract(BaseModel):
         default=None,
         exclude=True,
         repr=False,
-        description="O prazo de resposta exigido (se houver), reformatado para YYYY-mm-dd",
+        description="O prazo de resposta exigido (se houver), "
+        "reformatado para YYYY-mm-dd",
     )
     max_potential_exposure: float | None = Field(
         default=None,
@@ -99,7 +100,7 @@ class ClaimExtract(BaseModel):
             return None
         try:
             return datetime.strptime(date_str, "%Y-%m-%d").date()
-        except Exception:
+        except ValueError:
             return None
 
     @computed_field
@@ -132,9 +133,8 @@ claim_parse_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-claim_parser_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+claim_parser_model = get_model()
 
-CLAIM_PARSER_CHAIN = (
-    claim_parse_prompt
-    | claim_parser_model.with_structured_output(ClaimExtract)
+CLAIM_PARSER_CHAIN = claim_parse_prompt | claim_parser_model.with_structured_output(
+    ClaimExtract
 )

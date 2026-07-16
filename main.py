@@ -7,6 +7,7 @@ Uso:
 """
 
 import argparse
+import logging
 
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -15,9 +16,18 @@ from graphs.claims_agent import CLAIMS_AGENT
 
 
 def run_message(message: str) -> None:
-    result = CLAIMS_AGENT.invoke({"messages": [HumanMessage(content=message)]})
+    try:
+        result = CLAIMS_AGENT.invoke({"messages": [HumanMessage(content=message)]})
+    except Exception as exc:
+        # Fronteira da CLI: reporta o erro em vez de estourar um traceback.
+        print(f"[ERRO] Falha ao processar a mensagem: {exc}")
+        return
     final_message = result["messages"][-1]
-    content = final_message.content if isinstance(final_message, AIMessage) else final_message
+    content = (
+        final_message.content
+        if isinstance(final_message, AIMessage)
+        else str(final_message)
+    )
     print(content)
 
 
@@ -46,6 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    # Entry-point configura o logging; as ações de negócio (actions.py) só
+    # emitem via logging, sem saber para onde vai a saída.
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = build_parser().parse_args()
     if args.demo:
         run_demo()
