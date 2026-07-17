@@ -43,6 +43,7 @@ e o que deve ser encaminhado para outro departamento.
 ├── main.py                  # ponto de entrada (CLI)
 ├── app.py                   # interface Streamlit opcional (demonstração)
 ├── .github/workflows/ci.yml # lint + testes no GitHub Actions
+├── Makefile                 # atalhos para install/run/test/lint/ci
 └── tests/
     ├── unit/                # lógica determinística, sem chamadas de API
     └── integration/         # chains, grafo e agente, com marker @pytest.mark.integration
@@ -77,6 +78,20 @@ echo "GEMINI_API_KEY=sua-chave-aqui" >> .env
 A chave é lida de `GEMINI_API_KEY` (com `GOOGLE_API_KEY` como fallback) e
 passada explicitamente ao cliente em `llm.py`.
 
+## Makefile
+
+Os comandos de instalação, execução, testes e qualidade abaixo também
+estão disponíveis como atalhos via `make` (`make help` lista todos):
+
+```bash
+make install    # uv sync --all-extras --dev
+make run        # CLI em modo demo
+make test       # testes unitários
+make lint       # ruff check
+make format     # ruff format
+make ci         # lint + format-check + pip-audit + testes (mesmo pipeline da CI)
+```
+
 ## Uso
 
 ```bash
@@ -96,6 +111,8 @@ uv run pytest -m integration   # chama a API do Gemini de verdade
 uv run pytest -m ""            # roda tudo
 ```
 
+Ou via `make test`, `make test-integration`, `make test-all`.
+
 ## Qualidade de código
 
 Lint e formatação com [Ruff](https://docs.astral.sh/ruff/):
@@ -105,6 +122,9 @@ uv run ruff check              # lint
 uv run ruff check --fix        # lint + correções automáticas
 uv run ruff format            # formatação
 ```
+
+Ou via `make lint`, `make lint-fix`, `make format`, `make format-check`.
+`make ci` roda o mesmo pipeline usado no GitHub Actions.
 
 O [GitHub Actions](.github/workflows/ci.yml) roda `ruff check`,
 `ruff format --check`, um scan de dependências (`pip-audit`) e os testes
