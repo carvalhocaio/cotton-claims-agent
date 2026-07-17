@@ -118,9 +118,12 @@ A entrada do agente é texto de e-mail **não-confiável**, então o projeto
 adota algumas defesas contra prompt injection e vazamento:
 
 - **Backstop determinístico de escalonamento** (`graphs/claim_extraction.py`):
-  exposição financeira acima de `ESCALATION_EXPOSURE_THRESHOLD_USD` ou
-  sinais de contaminação no texto forçam o escalonamento em Python, mesmo
-  que a mensagem tente instruir o modelo a "não escalar".
+  quando a exposição financeira extraída fica acima de
+  `ESCALATION_EXPOSURE_THRESHOLD_USD`, o escalonamento é forçado em Python,
+  mesmo que a mensagem tente instruir o modelo a "não escalar". Usa apenas
+  o valor estruturado (objetivo); a avaliação de contaminação fica com o
+  LLM, que lida com contexto/negação (busca de palavra-chave no texto
+  gerava falsos positivos).
 - **Prompts endurecidos**: o conteúdo do remetente entra delimitado por
   `<mensagem>...</mensagem>` e os prompts instruem o modelo a tratá-lo como
   DADO, nunca como instruções.

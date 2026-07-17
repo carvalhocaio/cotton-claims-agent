@@ -29,17 +29,6 @@ QUALIFYING_QUESTIONS = [
 """Checklist fixo usado antes de abrir um ticket de arbitragem. Única
 fonte de verdade — se o checklist mudar, muda só aqui."""
 
-CONTAMINATION_KEYWORDS = (
-    "contaminação",
-    "contaminacao",
-    "plástico",
-    "plastico",
-    "polipropileno",
-    "fibra estranha",
-)
-"""Sinais textuais de contaminação usados no backstop determinístico de
-escalonamento (defesa contra prompt injection que peça para não escalar)."""
-
 
 class GraphState(TypedDict):
     message: str
@@ -57,21 +46,21 @@ def parse_claim(state: GraphState) -> dict[str, ClaimExtract]:
     return {"claim_data": claim_data}
 
 
-def deterministic_escalation_triggers(claim: ClaimExtract, message: str) -> list[str]:
+def deterministic_escalation_triggers(claim: ClaimExtract) -> list[str]:
     """Backstop determinístico de escalonamento, independente do LLM.
 
     Defesa contra prompt injection (PI-1/PI-4): mesmo que a mensagem
-    instrua o modelo a "não escalar", exposição financeira acima do
-    limiar ou sinais textuais de contaminação forçam o escalonamento.
+    instrua o modelo a "não escalar", uma exposição financeira extraída
+    acima do limiar força o escalonamento. Usa apenas o campo estruturado
+    `max_potential_exposure` (objetivo), não busca de palavras-chave no
+    texto — esta produzia falsos positivos com menções negadas (ex.: "não
+    houve contaminação"); a avaliação de contaminação fica a cargo do LLM.
     Função pura — testável sem chamar a API.
     """
     triggers: list[str] = []
     exposure = claim.max_potential_exposure or 0
     if exposure >= ESCALATION_EXPOSURE_THRESHOLD_USD:
         triggers.append("exposição financeira acima do limiar (backstop)")
-    lowered = message.lower()
-    if any(keyword in lowered for keyword in CONTAMINATION_KEYWORDS):
-        triggers.append("sinal de contaminação no texto (backstop)")
     return triggers
 
 
@@ -79,7 +68,7 @@ def check_escalation(state: GraphState) -> dict[str, EscalationCheck]:
     escalation = cast(
         EscalationCheck, ESCALATION_CHECK_CHAIN.invoke({"message": state["message"]})
     )
-    backstop = deterministic_escalation_triggers(state["claim_data"], state["message"])
+    backstop = deterministic_escalation_triggers(state["claim_data"])
     if backstop:
         escalation = escalation.model_copy(
             update={
