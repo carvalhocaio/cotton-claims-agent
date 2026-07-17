@@ -18,14 +18,18 @@ from chains.claim_extraction import ClaimExtract
 
 logger = logging.getLogger(__name__)
 
-_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
 
 
 def _clean(value: object) -> str:
     """Neutraliza quebras de linha e caracteres de controle em texto vindo
     do LLM/remetente antes de ir para o log (CS-1: impede forja de linhas
-    de log injetando `\\n[TICKET] ...` em campos como o nome do reclamante)."""
-    return _CONTROL_CHARS.sub(" ", str(value))
+    de log injetando `\\n[TICKET] ...` em campos como o nome do reclamante).
+
+    Cobre C0 (`\\x00-\\x1f`), DEL, o bloco C1 (`\\x7f-\\x9f`, que inclui NEL
+    `\\x85`) e os separadores de linha Unicode `\\u2028`/`\\u2029` — os três
+    últimos são tratados como quebra de linha por `str.splitlines()`.
+    """
 
 
 def _claim_summary(claim: ClaimExtract) -> str:
