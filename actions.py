@@ -30,6 +30,7 @@ def _clean(value: object) -> str:
     `\\x85`) e os separadores de linha Unicode `\\u2028`/`\\u2029` — os três
     últimos são tratados como quebra de linha por `str.splitlines()`.
     """
+    return _CONTROL_CHARS.sub(" ", str(value))
 
 
 def _claim_summary(claim: ClaimExtract) -> str:
