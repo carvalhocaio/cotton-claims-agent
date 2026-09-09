@@ -17,7 +17,7 @@ def test_should_continue_routes_to_tools_when_tool_calls_present():
 
 
 def test_should_continue_ends_when_no_tool_calls():
-    message = AIMessage(content="Resumo final.")
+    message = AIMessage(content="Final summary.")
     state = {"messages": [message]}
 
     assert should_continue(cast(MessagesState, state)) == END

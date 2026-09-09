@@ -1,43 +1,43 @@
 .PHONY: help install run run-app test test-integration test-all lint lint-fix format format-check audit ci clean
 
-help: ## Lista os comandos disponíveis
+help: ## Lists the available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-install: ## Instala as dependências do projeto (incluindo extras e dev)
+install: ## Installs the project dependencies (including extras and dev)
 	uv sync --all-extras --dev
 
-run: ## Roda o agente em modo demo (uso: make run-message MSG="..." para mensagem livre)
+run: ## Runs the agent in demo mode (use: make run-message MSG="..." for a free-form message)
 	uv run python main.py --demo
 
-run-app: ## Roda a interface Streamlit
+run-app: ## Runs the Streamlit interface
 	uv run streamlit run app.py
 
-test: ## Roda os testes unitários (exclui integration por padrão)
+test: ## Runs the unit tests (excludes integration by default)
 	uv run pytest
 
-test-integration: ## Roda os testes de integração (chamam a API real do Gemini)
+test-integration: ## Runs the integration tests (calls the real Gemini API)
 	uv run pytest -m integration
 
-test-all: ## Roda todos os testes, unitários e de integração
+test-all: ## Runs all tests, unit and integration
 	uv run pytest -m ""
 
-lint: ## Verifica o código com ruff
+lint: ## Checks the code with ruff
 	uv run ruff check
 
-lint-fix: ## Verifica e corrige automaticamente com ruff
+lint-fix: ## Checks and automatically fixes with ruff
 	uv run ruff check --fix
 
-format: ## Formata o código com ruff
+format: ## Formats the code with ruff
 	uv run ruff format
 
-format-check: ## Verifica a formatação sem alterar arquivos
+format-check: ## Checks formatting without modifying files
 	uv run ruff format --check
 
-audit: ## Audita dependências em busca de vulnerabilidades
+audit: ## Audits dependencies for vulnerabilities
 	uv run pip-audit
 
-ci: lint format-check audit test ## Roda o mesmo pipeline da CI localmente
+ci: lint format-check audit test ## Runs the same pipeline as CI locally
 
-clean: ## Remove caches (.ruff_cache, .pytest_cache, __pycache__)
+clean: ## Removes caches (.ruff_cache, .pytest_cache, __pycache__)
 	rm -rf .ruff_cache .pytest_cache
 	find . -type d -name '__pycache__' -exec rm -rf {} +

@@ -1,11 +1,11 @@
 """
-Grafo de triagem de reclamações: extrai dados estruturados da mensagem,
-avalia se precisa de escalonamento imediato e roteia para o caminho
-correspondente. Reclamações não escaladas passam por um checklist de
-qualificação (ciclo) antes de virar ticket de arbitragem.
+Claim triage graph: extracts structured data from the message, evaluates
+whether it needs immediate escalation, and routes to the corresponding
+path. Non-escalated claims go through a qualification checklist (a cycle)
+before becoming an arbitration ticket.
 
-Depende de chains.claim_extraction, chains.escalation_check e
-chains.binary_questions — este módulo orquestra as três, por design.
+Depends on chains.claim_extraction, chains.escalation_check and
+chains.binary_questions — this module orchestrates all three, by design.
 """
 
 from typing import Any, Literal, TypedDict, cast
@@ -22,12 +22,12 @@ from chains.escalation_check import (
 )
 
 QUALIFYING_QUESTIONS = [
-    "O embarque foi inspecionado por um surveyor independente?",
-    "Houve contaminação confirmada no lote?",
-    "O lote foi lacrado desde a origem até o destino?",
+    "Was the shipment inspected by an independent surveyor?",
+    "Was contamination confirmed in the lot?",
+    "Was the lot sealed from origin to destination?",
 ]
-"""Checklist fixo usado antes de abrir um ticket de arbitragem. Única
-fonte de verdade — se o checklist mudar, muda só aqui."""
+"""Fixed checklist used before opening an arbitration ticket. Single
+source of truth — if the checklist changes, it only changes here."""
 
 
 class GraphState(TypedDict):
@@ -47,20 +47,20 @@ def parse_claim(state: GraphState) -> dict[str, ClaimExtract]:
 
 
 def deterministic_escalation_triggers(claim: ClaimExtract) -> list[str]:
-    """Backstop determinístico de escalonamento, independente do LLM.
+    """Deterministic escalation backstop, independent of the LLM.
 
-    Defesa contra prompt injection (PI-1/PI-4): mesmo que a mensagem
-    instrua o modelo a "não escalar", uma exposição financeira extraída
-    acima do limiar força o escalonamento. Usa apenas o campo estruturado
-    `max_potential_exposure` (objetivo), não busca de palavras-chave no
-    texto — esta produzia falsos positivos com menções negadas (ex.: "não
-    houve contaminação"); a avaliação de contaminação fica a cargo do LLM.
-    Função pura — testável sem chamar a API.
+    Defense against prompt injection (PI-1/PI-4): even if the message
+    instructs the model to "not escalate", a financial exposure extracted
+    above the threshold forces escalation. Uses only the structured field
+    `max_potential_exposure` (objective), not keyword search in the text —
+    that produced false positives with negated mentions (e.g. "there was
+    no contamination"); the contamination assessment is left to the LLM.
+    Pure function — testable without calling the API.
     """
     triggers: list[str] = []
     exposure = claim.max_potential_exposure or 0
     if exposure >= ESCALATION_EXPOSURE_THRESHOLD_USD:
-        triggers.append("exposição financeira acima do limiar (backstop)")
+        triggers.append("financial exposure above threshold (backstop)")
     return triggers
 
 

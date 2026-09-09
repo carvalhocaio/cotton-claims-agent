@@ -1,182 +1,204 @@
 # cotton-claims-agent
 
-Agente de triagem de correspondência para uma trading de algodão,
-construído com [LangGraph](https://langchain-ai.github.io/langgraph/),
-como projeto de estudo baseado no artigo
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Stateful%20Agents-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
+[![Gemini](https://img.shields.io/badge/Google-Gemini-8E75B2?logo=google&logoColor=white)](https://ai.google.dev/)
+[![uv](https://img.shields.io/badge/managed%20with-uv-DE5FE9)](https://docs.astral.sh/uv/)
+
+Mail triage agent for a cotton trading company, built with
+[LangGraph](https://langchain-ai.github.io/langgraph/), as a study
+project based on the Real Python article
 [LangGraph: Build Stateful AI Agents in Python](https://realpython.com/langgraph-python/)
-da Real Python — adaptando o exemplo original (extração de avisos
-regulatórios por e-mail) para o domínio de reclamações de qualidade,
-contaminação e divergência de embarque no comércio de algodão.
+— adapting the original example (extracting regulatory notices from
+email) to the domain of quality claims, contamination, and shipment
+discrepancies in the cotton trade.
 
-## Cenário
+## Table of Contents
 
-A Cerrado Cotton Trading Co. recebe e-mails variados: reclamações de
-compradores sobre contaminação ou desvio de HVI, faturas de transporte,
-dúvidas comerciais, divergências de peso de algodoeiras parceiras. O
-agente decide o que é reclamação (e trata com o rigor que o caso exige)
-e o que deve ser encaminhado para outro departamento.
+- [Scenario](#scenario)
+- [LangGraph concepts, mapped by phase](#langgraph-concepts-mapped-by-phase)
+- [Structure](#structure)
+- [Setup](#setup)
+- [Makefile](#makefile)
+- [Usage](#usage)
+- [Tests](#tests)
+- [Code quality](#code-quality)
+- [Security](#security)
+- [Known limitations](#known-limitations)
+- [Credits](#credits)
 
-## Conceitos do LangGraph, mapeados por fase
+## Scenario
 
-| Fase | Conceito do artigo | Implementação aqui |
+Cerrado Cotton Trading Co. receives a variety of emails: buyer
+complaints about contamination or HVI deviation, freight invoices,
+commercial questions, weight discrepancies from partner gins. The
+agent decides what is a claim (and handles it with the rigor the case
+requires) and what should be forwarded to another department.
+
+## LangGraph concepts, mapped by phase
+
+| Phase | Concept from the article | Implementation here |
 |---|---|---|
-| 1 | Chains + saída estruturada (Pydantic) | `chains/claim_extraction.py`, `chains/escalation_check.py`, `chains/binary_questions.py` |
-| 2 | `StateGraph` linear | `parse_claim` → `check_escalation` em `graphs/claim_extraction.py` |
-| 3 | Aresta condicional (`add_conditional_edges`) | Escalonamento imediato vs. checklist de qualificação |
-| 4 | Ciclo (node apontando para si mesmo) | `ask_next_qualifying_question`, até a lista de pendências esvaziar |
-| 5 | Agente com `MessagesState` + `ToolNode` | `graphs/claims_agent.py`, decidindo entre `triage_claim` e `forward_to_department` |
+| 1 | Chains + structured output (Pydantic) | `chains/claim_extraction.py`, `chains/escalation_check.py`, `chains/binary_questions.py` |
+| 2 | Linear `StateGraph` | `parse_claim` → `check_escalation` in `graphs/claim_extraction.py` |
+| 3 | Conditional edge (`add_conditional_edges`) | Immediate escalation vs. qualification checklist |
+| 4 | Cycle (node pointing back to itself) | `ask_next_qualifying_question`, until the pending list empties |
+| 5 | Agent with `MessagesState` + `ToolNode` | `graphs/claims_agent.py`, deciding between `triage_claim` and `forward_to_department` |
 
-## Estrutura
+## Structure
 
 ```
 .
-├── chains/                  # unidades de LLM independentes entre si
-│   ├── claim_extraction.py  # ClaimExtract + extração estruturada
-│   ├── escalation_check.py  # decide se precisa escalonamento imediato
-│   └── binary_questions.py  # perguntas sim/não usadas no ciclo (Fase 4)
+├── chains/                  # LLM units, independent of each other
+│   ├── claim_extraction.py  # ClaimExtract + structured extraction
+│   ├── escalation_check.py  # decides whether immediate escalation is needed
+│   └── binary_questions.py  # yes/no questions used in the cycle (Phase 4)
 ├── graphs/
-│   ├── claim_extraction.py  # StateGraph das Fases 2–4
-│   └── claims_agent.py      # agente completo (Fase 5)
-├── llm.py                   # factory única do modelo (get_model)
-├── actions.py               # ações de negócio (efeitos colaterais via logging)
-├── example_claims.py        # mensagens de exemplo, sem dependências internas
-├── main.py                  # ponto de entrada (CLI)
-├── app.py                   # interface Streamlit opcional (demonstração)
-├── .github/workflows/ci.yml # lint + testes no GitHub Actions
-├── Makefile                 # atalhos para install/run/test/lint/ci
+│   ├── claim_extraction.py  # StateGraph for Phases 2-4
+│   └── claims_agent.py      # complete agent (Phase 5)
+├── llm.py                   # single model factory (get_model)
+├── actions.py                # business actions (side effects via logging)
+├── example_claims.py        # sample messages, no internal dependencies
+├── main.py                   # entry point (CLI)
+├── app.py                    # optional Streamlit interface (demo)
+├── .github/workflows/ci.yml # lint + tests on GitHub Actions
+├── Makefile                  # shortcuts for install/run/test/lint/ci
 └── tests/
-    ├── unit/                # lógica determinística, sem chamadas de API
-    └── integration/         # chains, grafo e agente, com marker @pytest.mark.integration
+    ├── unit/                # deterministic logic, no API calls
+    └── integration/         # chains, graph and agent, with @pytest.mark.integration
 ```
 
-Princípio seguido em todo o projeto: nenhum arquivo depende de outro que
-ainda não existia no momento em que foi escrito. `chains/` não sabe da
-existência de `graphs/`; as três chains são independentes entre si;
-`graphs/claim_extraction.py` depende só das chains; `graphs/claims_agent.py`
-é o único módulo que depende de outro grafo.
+Principle followed throughout the project: no file depends on another
+that did not already exist when it was written. `chains/` doesn't know
+`graphs/` exists; the three chains are independent of each other;
+`graphs/claim_extraction.py` depends only on the chains;
+`graphs/claims_agent.py` is the only module that depends on another
+graph.
 
-Dois módulos transversais concentram responsabilidades que antes ficavam
-espalhadas:
+Two cross-cutting modules concentrate responsibilities that used to be
+scattered:
 
-- **`llm.py`** — factory `get_model()`, ponto único de configuração e
-  troca do provedor de LLM (nome do modelo, temperatura e chave de API).
-  As chains e o agente pedem o modelo por aqui, sem instanciar o cliente
-  diretamente (DRY + Dependency Inversion).
-- **`actions.py`** — ações de negócio (notificar a mesa de trading, abrir
-  ticket, encaminhar para outro departamento, registrar respostas do
-  checklist). Os nós do grafo decidem *o que* fazer; este módulo decide
-  *como* comunicar, hoje via `logging`. Trocar por integrações reais
-  (e-mail, ticket, fila) é uma mudança local, sem tocar nos grafos.
+- **`llm.py`** — the `get_model()` factory, a single point of
+  configuration and provider swap for the LLM (model name, temperature,
+  and API key). Chains and the agent request the model from here
+  instead of instantiating the client directly (DRY + Dependency
+  Inversion).
+- **`actions.py`** — business actions (notify the trading desk, open a
+  ticket, forward to another department, record checklist answers). The
+  graph nodes decide *what* to do; this module decides *how* to
+  communicate, today via `logging`. Swapping in real integrations
+  (email, ticket, queue) is a local change, without touching the
+  graphs.
 
 ## Setup
 
 ```bash
 uv sync
-echo "GEMINI_API_KEY=sua-chave-aqui" >> .env
+echo "GEMINI_API_KEY=your-key-here" >> .env
 ```
 
-A chave é lida de `GEMINI_API_KEY` (com `GOOGLE_API_KEY` como fallback) e
-passada explicitamente ao cliente em `llm.py`.
+The key is read from `GEMINI_API_KEY` (with `GOOGLE_API_KEY` as a
+fallback) and passed explicitly to the client in `llm.py`.
 
 ## Makefile
 
-Os comandos de instalação, execução, testes e qualidade abaixo também
-estão disponíveis como atalhos via `make` (`make help` lista todos):
+The install, run, test, and quality commands below are also available
+as shortcuts via `make` (`make help` lists them all):
 
 ```bash
 make install    # uv sync --all-extras --dev
-make run        # CLI em modo demo
-make test       # testes unitários
+make run        # CLI in demo mode
+make test       # unit tests
 make lint       # ruff check
 make format     # ruff format
-make ci         # lint + format-check + pip-audit + testes (mesmo pipeline da CI)
+make ci         # lint + format-check + pip-audit + tests (same pipeline as CI)
 ```
 
-## Uso
+## Usage
 
 ```bash
 # CLI
 uv run python main.py --demo
-uv run python main.py --message "texto de uma reclamação ou e-mail qualquer"
+uv run python main.py --message "text of a claim or any email"
 
-# Interface Streamlit (extra opcional: uv sync --extra app)
+# Streamlit interface (optional extra: uv sync --extra app)
 uv run streamlit run app.py
 ```
 
-## Testes
+## Tests
 
 ```bash
-uv run pytest                  # só unitários (rápido, sem rede, sem custo)
-uv run pytest -m integration   # chama a API do Gemini de verdade
-uv run pytest -m ""            # roda tudo
+uv run pytest                  # unit only (fast, no network, no cost)
+uv run pytest -m integration   # calls the real Gemini API
+uv run pytest -m ""            # runs everything
 ```
 
-Ou via `make test`, `make test-integration`, `make test-all`.
+Or via `make test`, `make test-integration`, `make test-all`.
 
-## Qualidade de código
+## Code quality
 
-Lint e formatação com [Ruff](https://docs.astral.sh/ruff/):
+Lint and formatting with [Ruff](https://docs.astral.sh/ruff/):
 
 ```bash
 uv run ruff check              # lint
-uv run ruff check --fix        # lint + correções automáticas
-uv run ruff format            # formatação
+uv run ruff check --fix        # lint + automatic fixes
+uv run ruff format            # formatting
 ```
 
-Ou via `make lint`, `make lint-fix`, `make format`, `make format-check`.
-`make ci` roda o mesmo pipeline usado no GitHub Actions.
+Or via `make lint`, `make lint-fix`, `make format`, `make format-check`.
+`make ci` runs the same pipeline used in GitHub Actions.
 
-O [GitHub Actions](.github/workflows/ci.yml) roda `ruff check`,
-`ruff format --check`, um scan de dependências (`pip-audit`) e os testes
-unitários a cada push/PR na `main`. Os testes unitários não chamam a API,
-mas usam uma chave fictícia no CI porque os modelos são construídos no
-import.
+[GitHub Actions](.github/workflows/ci.yml) runs `ruff check`,
+`ruff format --check`, a dependency scan (`pip-audit`), and the unit
+tests on every push/PR to `main`. The unit tests don't call the API,
+but they use a dummy key in CI because the models are built at import
+time.
 
-## Segurança
+## Security
 
-A entrada do agente é texto de e-mail **não-confiável**, então o projeto
-adota algumas defesas contra prompt injection e vazamento:
+The agent's input is **untrusted** email text, so the project adopts a
+few defenses against prompt injection and leakage:
 
-- **Backstop determinístico de escalonamento** (`graphs/claim_extraction.py`):
-  quando a exposição financeira extraída fica acima de
-  `ESCALATION_EXPOSURE_THRESHOLD_USD`, o escalonamento é forçado em Python,
-  mesmo que a mensagem tente instruir o modelo a "não escalar". Usa apenas
-  o valor estruturado (objetivo); a avaliação de contaminação fica com o
-  LLM, que lida com contexto/negação (busca de palavra-chave no texto
-  gerava falsos positivos).
-- **Prompts endurecidos**: o conteúdo do remetente entra delimitado por
-  `<mensagem>...</mensagem>` e os prompts instruem o modelo a tratá-lo como
-  DADO, nunca como instruções.
-- **Sanitização de log** (`actions.py`): campos vindos do LLM têm quebras
-  de linha/controles neutralizados antes de ir para o log, evitando forja
-  de linhas.
-- **Teto de iterações** (`AGENT_RECURSION_LIMIT`) nos `.invoke` do agente,
-  para conter custo/loops.
+- **Deterministic escalation backstop** (`graphs/claim_extraction.py`):
+  when the extracted financial exposure is above
+  `ESCALATION_EXPOSURE_THRESHOLD_USD`, escalation is forced in Python,
+  even if the message tries to instruct the model to "not escalate".
+  It uses only the structured (objective) value; the contamination
+  assessment is left to the LLM, which handles context/negation
+  (keyword search in the text produced false positives).
+- **Hardened prompts**: sender content is delimited by
+  `<message>...</message>` and the prompts instruct the model to treat
+  it as DATA, never as instructions.
+- **Log sanitization** (`actions.py`): fields coming from the LLM have
+  line breaks/control characters neutralized before going to the log,
+  preventing log line forging.
+- **Iteration ceiling** (`AGENT_RECURSION_LIMIT`) on the agent's
+  `.invoke` calls, to contain cost/loops.
 
-Ao operar/expor este projeto:
+When operating/exposing this project:
 
-- **Não exponha o Streamlit publicamente sem autenticação e rate-limiting**
-  — sem isso, qualquer um consome tokens da API (custo) e o app vira canal
-  de entrada não-controlado.
-- **O conteúdo enviado é processado pela API do Google Gemini** (serviço
-  externo). Não cole dados sensíveis reais na interface/demo; use dados
-  fictícios, como em `example_claims.py`.
-- Rode o scan de dependências periodicamente: `uv run pip-audit`.
+- **Don't expose Streamlit publicly without authentication and
+  rate-limiting** — without it, anyone consumes API tokens (cost) and
+  the app becomes an uncontrolled entry channel.
+- **Content sent is processed by the Google Gemini API** (an external
+  service). Don't paste real sensitive data into the interface/demo;
+  use fictitious data, as in `example_claims.py`.
+- Run the dependency scan periodically: `uv run pip-audit`.
 
-## Limitações conhecidas
+## Known limitations
 
-- `response_deadline` só é preenchido quando a mensagem menciona uma
-  data absoluta. Prazos relativos ("5 dias úteis a partir desta data")
-  não são resolvidos — isso exigiria uma função determinística de
-  cálculo de dias úteis, deliberadamente fora do escopo do LLM.
-- O checklist de qualificação (`QUALIFYING_QUESTIONS`) é fixo; não se
-  adapta ao tipo de reclamação.
-- As ações de negócio em `actions.py` (notificar a mesa, abrir ticket,
-  encaminhar) são simuladas via `logging` — ainda não integram com um
-  sistema real de tickets ou e-mail.
+- `response_deadline` is only filled in when the message mentions an
+  absolute date. Relative deadlines ("5 business days from this date")
+  are not resolved — that would require a deterministic business-day
+  calculation function, deliberately out of the LLM's scope.
+- The qualification checklist (`QUALIFYING_QUESTIONS`) is fixed; it
+  does not adapt to the claim type.
+- The business actions in `actions.py` (notify the desk, open a
+  ticket, forward) are simulated via `logging` — they don't yet
+  integrate with a real ticketing or email system.
 
-## Créditos
+## Credits
 
-Estrutura de código inspirada no tutorial
+Code structure inspired by the tutorial
 [LangGraph: Build Stateful AI Agents in Python](https://realpython.com/langgraph-python/),
-adaptado para o domínio de comércio de algodão.
+adapted for the cotton trading domain.

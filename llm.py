@@ -1,12 +1,11 @@
 """
-Factory única do modelo de linguagem usado por todo o projeto.
+Single factory for the language model used throughout the project.
 
-Centraliza o nome do modelo, a temperatura, a chave de API e o
-carregamento das variáveis de ambiente (`.env`) num só lugar. As chains e
-o agente pedem o modelo por aqui em vez de instanciar
-`ChatGoogleGenerativeAI` diretamente — isso remove a duplicação (DRY) e
-cria um único ponto de injeção/troca do provedor de LLM (Dependency
-Inversion).
+Centralizes the model name, temperature, API key, and environment
+variable loading (`.env`) in one place. The chains and the agent request
+the model from here instead of instantiating `ChatGoogleGenerativeAI`
+directly — this removes duplication (DRY) and creates a single
+injection/swap point for the LLM provider (Dependency Inversion).
 """
 
 import os
@@ -17,16 +16,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 
 MODEL_NAME = "gemini-2.5-flash"
-"""Modelo padrão do projeto. Única fonte de verdade — trocar aqui troca
-em todas as chains e no agente."""
+"""Default model for the project. Single source of truth — changing it
+here changes it across all chains and the agent."""
 
 TEMPERATURE = 0
-"""Temperatura 0 para respostas determinísticas na extração/roteamento."""
+"""Temperature 0 for deterministic responses in extraction/routing."""
 
 API_KEY_ENV_VAR = "GEMINI_API_KEY"
-"""Nome canônico da variável de ambiente com a chave da API. Mantém
-`GOOGLE_API_KEY` como fallback para compatibilidade com o padrão do
-`langchain-google-genai`."""
+"""Canonical name of the environment variable holding the API key. Keeps
+`GOOGLE_API_KEY` as a fallback for compatibility with the
+`langchain-google-genai` default."""
 
 
 def _resolve_api_key() -> str | None:
@@ -38,12 +37,13 @@ def get_model(
     model: str = MODEL_NAME,
     temperature: float = TEMPERATURE,
 ) -> ChatGoogleGenerativeAI:
-    """Retorna um modelo configurado, pronto para receber
-    `.with_structured_output(...)` ou `.bind_tools(...)` conforme o uso.
+    """Returns a configured model, ready to receive
+    `.with_structured_output(...)` or `.bind_tools(...)` depending on
+    usage.
 
-    A chave é lida de `GEMINI_API_KEY` (ou `GOOGLE_API_KEY` como fallback)
-    e passada explicitamente, para que o nome usado no `.env`/README seja
-    o mesmo efetivamente consumido pelo cliente.
+    The key is read from `GEMINI_API_KEY` (or `GOOGLE_API_KEY` as a
+    fallback) and passed explicitly, so the name used in `.env`/README is
+    the same one effectively consumed by the client.
     """
     return ChatGoogleGenerativeAI(
         model=model,

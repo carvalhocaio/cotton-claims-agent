@@ -7,8 +7,8 @@ def test_exposure_at_or_above_threshold_forces_escalation():
     claim = ClaimExtract(max_potential_exposure=ESCALATION_EXPOSURE_THRESHOLD_USD)
     triggers = deterministic_escalation_triggers(claim)
 
-    assert triggers  # não vazio
-    assert any("exposição" in t for t in triggers)
+    assert triggers  # not empty
+    assert any("exposure" in t for t in triggers)
 
 
 def test_below_threshold_returns_no_triggers():
@@ -26,10 +26,10 @@ def test_missing_exposure_is_treated_as_zero():
 
 
 def test_contamination_wording_alone_does_not_trigger_backstop():
-    # O backstop não faz busca de palavra-chave no texto: menções (mesmo
-    # negadas, ex.: "não houve contaminação") não devem escalar por si só.
-    # A avaliação de contaminação é responsabilidade do LLM.
-    claim = ClaimExtract(claim_type="contaminação", max_potential_exposure=0.0)
+    # The backstop does not do keyword search in the text: mentions (even
+    # negated, e.g. "there was no contamination") should not escalate by
+    # themselves. Contamination assessment is the LLM's responsibility.
+    claim = ClaimExtract(claim_type="contamination", max_potential_exposure=0.0)
     triggers = deterministic_escalation_triggers(claim)
 
     assert triggers == []

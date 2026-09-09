@@ -1,14 +1,14 @@
 """
-Mensagens de exemplo simulando e-mail/comunicados recebidos por uma
-trading de algodão sobre reclamações de qualidade, disputas de embarque
-e outras correspondências comuns.
+Sample messages simulating emails/notices received by a cotton trading
+company about quality claims, shipment disputes, and other common
+correspondence.
 
-Este módulo não depende de nenhum outro arquivo de projeto; é dado puro,
-usado por chains, grafos e testes manuais no REPL.
+This module does not depend on any other project file; it is pure data,
+used by chains, graphs, and manual tests in the REPL.
 """
 
 CLAIMS = [
-    # Claim 0: contaminação, alta exposição financeira -> deve escalar
+    # Claim 0: contamination, high financial exposure -> should escalate
     """
     Date: June 3, 2026
     From: Meridian Textile Mills, Contract MTM-2026-0417
@@ -38,22 +38,22 @@ CLAIMS = [
     Contact: For questions, contact our quality department at
     +1 (704) 555-0182 or claims@meridiantextile.com.
     """,
-    # Claim 1: fatura, não é reclamação -> deve ser roteada pro financeiro
+    # Claim 1: invoice, not a claim -> should be routed to finance
     """
     From: billing@ginlogistics.com.br
 
-    Prezados,
+    Dear Sir/Madam,
 
-    Segue em anexo a fatura referente ao frete de 480 fardos do lote
-    BR-CT-88104, no valor de R$ 62.400,00, com vencimento em 20 dias.
+    Please find attached the invoice for freight on 480 bales from lot
+    BR-CT-88104, in the amount of R$ 62,400.00, due in 20 days.
 
-    Qualquer dúvida, estamos à disposição.
+    Please let us know if you have any questions.
 
-    Atenciosamente,
+    Best regards,
     Gin Logistics Transportes
     """,
-    # Claim 2: reclamação de cliente, linguagem informal, sem termos técnicos
-    # explícitos de contrato -> testa se o agente reconhece como reclamação
+    # Claim 2: customer complaint, informal language, no explicit contract
+    # technical terms -> tests whether the agent recognizes it as a claim
     """
     From: procurement@anatoliayarns.com.tr
 
@@ -68,27 +68,27 @@ CLAIMS = [
     Thanks,
     Deniz
     """,
-    # Claim 3: disputa de peso com um gin doméstico, baixa exposição,
-    # sem contaminação -> não deve escalar, mas pode gerar follow-up
+    # Claim 3: weight dispute with a domestic gin, low exposure, no
+    # contamination -> should not escalate, but may generate follow-up
     """
-    Data: 14 de julho de 2026
-    De: Algodoeira Vale do Cerrado
-    Para: Cerrado Cotton Trading Co.
-    Referente: Lote BR-CT-88350, Fazenda Santa Rita, Primavera do Leste, MT
+    Date: July 14, 2026
+    From: Cerrado Valley Ginnery
+    To: Cerrado Cotton Trading Co.
+    Reference: Lot BR-CT-88350, Santa Rita Farm, Primavera do Leste, MT
 
-    Prezados,
+    Dear Sir/Madam,
 
-    Na conferência de peso na chegada ao armazém, identificamos uma
-    diferença de 340 kg a menos em relação ao romaneio original de
-    embarque (18.200 kg previstos contra 17.860 kg recebidos).
+    During the weight check upon arrival at the warehouse, we identified
+    a shortfall of 340 kg compared to the original shipping packing list
+    (18,200 kg expected versus 17,860 kg received).
 
-    Não há indícios de contaminação ou problema de classificação HVI.
-    Solicitamos revisão do romaneio e, se confirmada a divergência,
-    ajuste no valor da nota.
+    There are no signs of contamination or HVI classification issues.
+    We request a review of the packing list and, if the discrepancy is
+    confirmed, an adjustment to the invoice amount.
 
-    Prazo para resposta: 10 dias úteis.
+    Response deadline: 10 business days.
 
-    Atenciosamente,
-    Setor de Recebimento
+    Best regards,
+    Receiving Department
     """,
 ]

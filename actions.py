@@ -1,13 +1,15 @@
 """
-Ações de negócio (efeitos colaterais) do fluxo de triagem.
+Business actions (side effects) of the triage flow.
 
-Concentra num só lugar todo o I/O que antes ficava embutido como `print`
-dentro dos nós do grafo e das tools do agente. Separar essas ações da
-lógica de orquestração restaura o Single Responsibility Principle: os nós
-decidem *o que* fazer, este módulo decide *como* comunicar/registrar.
+Concentrates in one place all the I/O that used to be embedded as `print`
+inside the graph nodes and the agent's tools. Separating these actions
+from the orchestration logic restores the Single Responsibility
+Principle: the nodes decide *what* to do, this module decides *how* to
+communicate/record it.
 
-Hoje as ações apenas escrevem no `logging`; trocá-las por integrações
-reais (e-mail, ticket, fila) é uma mudança local, sem tocar nos grafos.
+Today the actions only write to `logging`; swapping them for real
+integrations (email, ticket, queue) is a local change, without touching
+the graphs.
 """
 
 import logging
@@ -18,36 +20,38 @@ from chains.claim_extraction import ClaimExtract
 
 logger = logging.getLogger(__name__)
 
-_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f  ]")
 
 
 def _clean(value: object) -> str:
-    """Neutraliza quebras de linha e caracteres de controle em texto vindo
-    do LLM/remetente antes de ir para o log (CS-1: impede forja de linhas
-    de log injetando `\\n[TICKET] ...` em campos como o nome do reclamante).
+    """Neutralizes line breaks and control characters in text coming
+    from the LLM/sender before it goes to the log (CS-1: prevents log
+    line forging by injecting `\\n[TICKET] ...` into fields such as the
+    claimant's name).
 
-    Cobre C0 (`\\x00-\\x1f`), DEL, o bloco C1 (`\\x7f-\\x9f`, que inclui NEL
-    `\\x85`) e os separadores de linha Unicode `\\u2028`/`\\u2029` — os três
-    últimos são tratados como quebra de linha por `str.splitlines()`.
+    Covers C0 (`\\x00-\\x1f`), DEL, the C1 block (`\\x7f-\\x9f`, which
+    includes NEL `\\x85`) and the Unicode line separators `\\u2028`/
+    `\\u2029` — the last three are treated as line breaks by
+    `str.splitlines()`.
     """
     return _CONTROL_CHARS.sub(" ", str(value))
 
 
 def _claim_summary(claim: ClaimExtract) -> str:
-    """Resumo curto de identificação da reclamação, reutilizado nas
-    mensagens de escalonamento e de abertura de ticket (DRY)."""
+    """Short identification summary of the claim, reused in the
+    escalation and ticket-opening messages (DRY)."""
     return (
-        f"reclamante: {_clean(claim.claiming_party)}, "
-        f"contrato/lote: {_clean(claim.contract_or_lot_reference)}"
+        f"claimant: {_clean(claim.claiming_party)}, "
+        f"contract/lot: {_clean(claim.contract_or_lot_reference)}"
     )
 
 
 def notify_trading_desk(claim: ClaimExtract, triggers: list[str]) -> None:
-    """Notifica a mesa de trading sobre uma reclamação escalada."""
+    """Notifies the trading desk about an escalated claim."""
     exposure = f"{claim.max_potential_exposure or 0:,.2f}"
     logger.info(
-        "[ESCALAÇÃO] Notificando mesa de trading — %s, "
-        "exposição estimada: USD %s, motivos: %s.",
+        "[ESCALATION] Notifying trading desk — %s, "
+        "estimated exposure: USD %s, reasons: %s.",
         _claim_summary(claim),
         exposure,
         _clean(", ".join(triggers)),
@@ -55,9 +59,9 @@ def notify_trading_desk(claim: ClaimExtract, triggers: list[str]) -> None:
 
 
 def log_qualification_answer(question: str, answer: BinaryAnswer) -> None:
-    """Registra a resposta de uma pergunta do checklist de qualificação."""
+    """Records the answer to a qualification checklist question."""
     logger.info(
-        "[QUALIFICAÇÃO] %s -> %s (%s)",
+        "[QUALIFICATION] %s -> %s (%s)",
         question,
         answer.answer,
         answer.confidence,
@@ -65,18 +69,18 @@ def log_qualification_answer(question: str, answer: BinaryAnswer) -> None:
 
 
 def create_arbitration_ticket(claim: ClaimExtract) -> None:
-    """Abre um ticket de arbitragem para a reclamação qualificada."""
+    """Opens an arbitration ticket for the qualified claim."""
     logger.info(
-        "[TICKET] Ticket de arbitragem aberto — %s, tipo: %s.",
+        "[TICKET] Arbitration ticket opened — %s, type: %s.",
         _claim_summary(claim),
         _clean(claim.claim_type),
     )
 
 
 def forward_to_department(department: str, reason: str) -> None:
-    """Encaminha a mensagem para outro departamento interno."""
+    """Forwards the message to another internal department."""
     logger.info(
-        "[ENCAMINHAMENTO] Mensagem enviada para %s. Motivo: %s",
+        "[FORWARDING] Message sent to %s. Reason: %s",
         _clean(department),
         _clean(reason),
     )

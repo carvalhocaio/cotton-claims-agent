@@ -1,11 +1,11 @@
 """
-Interface Streamlit para o cotton-claims-agent.
+Streamlit interface for cotton-claims-agent.
 
-Camada de demonstração, opcional - não faz parte do core do projeto
-(chains/, graphs/, tests/). Só consome CLAIMS_AGENT, do mesmo jeito
-que main.py já faz.
+Optional demonstration layer - not part of the project's core (chains/,
+graphs/, tests/). It only consumes CLAIMS_AGENT, the same way main.py
+already does.
 
-Uso:
+Usage:
     uv run streamlit run app.py
 """
 
@@ -21,24 +21,24 @@ from graphs.claims_agent import AGENT_RECURSION_LIMIT, CLAIMS_AGENT
 logger = logging.getLogger(__name__)
 
 TOOL_LABELS = {
-    "triage_claim": "Triagem de reclamação",
-    "forward_to_department": "Encaminhado para outro departamento",
+    "triage_claim": "Claim triage",
+    "forward_to_department": "Forwarded to another department",
 }
 
 EXAMPLE_LABELS = {
-    0: "Exemplo 0 — Contaminação + desvio de HVI (deve escalar)",
-    1: "Exemplo 1 — Fatura de frete (não é reclamação)",
-    2: "Exemplo 2 — Reclamação informal, sem vocabulário técnico",
-    3: "Exemplo 3 — Divergência de peso (checklist, sem escalonar)",
+    0: "Example 0 — Contamination + HVI deviation (should escalate)",
+    1: "Example 1 — Freight invoice (not a claim)",
+    2: "Example 2 — Informal complaint, no technical vocabulary",
+    3: "Example 3 — Weight discrepancy (checklist, no escalation)",
 }
 
 
 def extract_tool_call_and_output(
     messages: list[BaseMessage],
 ) -> tuple[str | None, str | None]:
-    """Extrai o nome da tool chamada pelo agente e o texto que ela
-    retornou. Função pura, sem efeitos colaterais — isolada do resto
-    da UI para poder ser testada isoladamente, se um dia fizer sentido.
+    """Extracts the name of the tool called by the agent and the text it
+    returned. Pure function, no side effects — isolated from the rest of
+    the UI so it can be tested in isolation, if that ever makes sense.
     """
     tool_name = None
     for message in messages:
@@ -69,7 +69,7 @@ def render_result(result: dict[str, Any]) -> None:
     if tool_output:
         st.info(tool_output)
 
-    st.markdown("**Resumo do agente:**")
+    st.markdown("**Agent summary:**")
     st.write(final_summary)
 
 
@@ -77,38 +77,38 @@ def main() -> None:
     st.set_page_config(page_title="Cotton Claims Agent")
     st.title("Cotton Claims Agent")
     st.caption(
-        "Triagem de correspondência de uma trading de algodão — construído "
-        "com LangGraph. O agente decide sozinho: reclamação de qualidade "
-        "vira triagem completa, o resto é encaminhado para o departamento certo."
+        "Mail triage for a cotton trading company — built with LangGraph. "
+        "The agent decides on its own: quality claims go through full "
+        "triage, everything else is forwarded to the right department."
     )
 
     example_choice = st.selectbox(
-        "Testar com um exemplo pronto (opcional)",
+        "Try a ready-made example (optional)",
         options=[None, *EXAMPLE_LABELS.keys()],
-        format_func=lambda i: "- selecione -" if i is None else EXAMPLE_LABELS[i],
+        format_func=lambda i: "- select -" if i is None else EXAMPLE_LABELS[i],
     )
 
     default_text = CLAIMS[example_choice] if example_choice is not None else ""
     message = st.text_area(
-        "Cole aqui o texto do e-mail ou reclamação",
+        "Paste the email or claim text here",
         value=default_text,
         height=200,
     )
 
-    if st.button("Rodar triagem", type="primary", disabled=not message.strip()):
-        with st.spinner("Agente avaliando a mensagem..."):
+    if st.button("Run triage", type="primary", disabled=not message.strip()):
+        with st.spinner("Agent evaluating the message..."):
             try:
                 result = CLAIMS_AGENT.invoke(
                     {"messages": [HumanMessage(content=message)]},
                     config={"recursion_limit": AGENT_RECURSION_LIMIT},
                 )
             except Exception:
-                # Detalhe do erro vai só para o log (server-side); o usuário
-                # final vê uma mensagem genérica, sem internals da lib/SDK.
-                logger.exception("Falha ao processar a mensagem")
+                # Error detail goes only to the log (server-side); the end
+                # user sees a generic message, without library/SDK internals.
+                logger.exception("Failed to process the message")
                 st.error(
-                    "Não foi possível processar a mensagem. "
-                    "Tente novamente ou contate o suporte."
+                    "Could not process the message. "
+                    "Please try again or contact support."
                 )
                 return
         render_result(result)

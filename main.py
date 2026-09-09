@@ -1,9 +1,9 @@
 """
-Ponto de entrada do cotton-claims-agent.
+Entry point for cotton-claims-agent.
 
-Uso:
+Usage:
     uv run python main.py --demo
-    uv run python main.py --message "texto da reclamação aqui"
+    uv run python main.py --message "claim text here"
 """
 
 import argparse
@@ -22,8 +22,8 @@ def run_message(message: str) -> None:
             config={"recursion_limit": AGENT_RECURSION_LIMIT},
         )
     except Exception as exc:
-        # Fronteira da CLI: reporta o erro em vez de estourar um traceback.
-        print(f"[ERRO] Falha ao processar a mensagem: {exc}")
+        # CLI boundary: report the error instead of raising a traceback.
+        print(f"[ERROR] Failed to process the message: {exc}")
         return
     final_message = result["messages"][-1]
     content = (
@@ -42,25 +42,25 @@ def run_demo() -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Triagem de correspondência da Cerrado Cotton Trading Co."
+        description="Mail triage for Cerrado Cotton Trading Co."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--demo",
         action="store_true",
-        help="Roda o agente sobre as mensagens de exemplo em example_claims.py",
+        help="Runs the agent over the sample messages in example_claims.py",
     )
     group.add_argument(
         "--message",
         type=str,
-        help="Roda o agente sobre uma mensagem única, passada como texto",
+        help="Runs the agent over a single message, passed as text",
     )
     return parser
 
 
 def main() -> None:
-    # Entry-point configura o logging; as ações de negócio (actions.py) só
-    # emitem via logging, sem saber para onde vai a saída.
+    # Entry point configures logging; business actions (actions.py) only
+    # emit via logging, without knowing where the output goes.
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = build_parser().parse_args()
     if args.demo:

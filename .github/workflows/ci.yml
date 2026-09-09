@@ -26,12 +26,12 @@ jobs:
       - name: Ruff (format)
         run: uv run ruff format --check
 
-      - name: Auditoria de dependências (pip-audit)
+      - name: Dependency audit (pip-audit)
         run: uv run pip-audit
 
-      - name: Testes unitários
-        # Chave fictícia: os testes unitários não chamam a API, mas os
-        # modelos são construídos no import e exigem uma chave presente.
+      - name: Unit tests
+        # Dummy key: unit tests don't call the API, but the models are
+        # built at import time and require a key to be present.
         env:
           GEMINI_API_KEY: dummy-key-for-ci
         run: uv run pytest

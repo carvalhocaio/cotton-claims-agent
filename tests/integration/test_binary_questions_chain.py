@@ -12,7 +12,7 @@ def test_no_confirmed_contamitation_in_weight_dispute(claims):
         BinaryAnswer,
         BINARY_QUESTION_CHAIN.invoke(
             {
-                "question": "Houve contaminação confirmada no lote?",
+                "question": "Was contamination confirmed in the lot?",
                 "message": claims[3],
             }
         ),

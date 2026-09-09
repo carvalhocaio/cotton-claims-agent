@@ -1,7 +1,7 @@
 [project]
 name = "cotton-claims-agent"
 version = "0.1.0"
-description = "Agente LangGraph para triagem de reclamações de qualidade de algodão"
+description = "LangGraph agent for triaging cotton quality claims"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -38,11 +38,11 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["E501"]  # descrições longas em asserts/fixtures de teste
+"tests/**" = ["E501"]  # long descriptions in test asserts/fixtures
 
 [tool.pytest.ini_options]
 markers = [
-    "integration: testes que chamam a API real do Gemini (lentos, custam tokens, não-determinísticos)",
+    "integration: tests that call the real Gemini API (slow, cost tokens, non-deterministic)",
 ]
 addopts = "-m 'not integration'"
 
