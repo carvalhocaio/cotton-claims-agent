@@ -13,6 +13,8 @@ project based on the Real Python article
 email) to the domain of quality claims, contamination, and shipment
 discrepancies in the cotton trade.
 
+![Demo: agent triaging a contamination claim and escalating it to the trading desk](docs/demo.gif)
+
 ## Table of Contents
 
 - [Scenario](#scenario)
