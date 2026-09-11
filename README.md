@@ -95,6 +95,7 @@ scattered:
 ```bash
 uv sync
 echo "GEMINI_API_KEY=your-key-here" >> .env
+make precommit-install  # installs the ruff pre-commit hook
 ```
 
 The key is read from `GEMINI_API_KEY` (with `GOOGLE_API_KEY` as a
@@ -112,6 +113,8 @@ make test       # unit tests
 make lint       # ruff check
 make format     # ruff format
 make ci         # lint + format-check + pip-audit + tests (same pipeline as CI)
+make precommit-install  # installs the ruff pre-commit hook
+make precommit          # runs pre-commit hooks against all files
 ```
 
 ## Usage

@@ -1,4 +1,4 @@
-.PHONY: help install run run-app test test-integration test-all lint lint-fix format format-check audit ci clean
+.PHONY: help install run run-app test test-integration test-all lint lint-fix format format-check audit precommit-install precommit ci clean
 
 help: ## Lists the available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -35,6 +35,12 @@ format-check: ## Checks formatting without modifying files
 
 audit: ## Audits dependencies for vulnerabilities
 	uv run pip-audit
+
+precommit-install: ## Installs the pre-commit hook in the local repository
+	uv run pre-commit install
+
+precommit: ## Runs all pre-commit hooks against all files
+	uv run pre-commit run --all-files
 
 ci: lint format-check audit test ## Runs the same pipeline as CI locally
 
